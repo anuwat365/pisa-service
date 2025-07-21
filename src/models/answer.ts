@@ -1,17 +1,43 @@
 import { Timestamp } from "firebase-admin/firestore";
+import { QuestionTypes } from "../types/question";
 
-export type QuestionTypes = "multiple_choice" | "short_answer" | "essay_writing" | "mathematical_work";     // Question Types
-
-export interface AnswerItemsProps {
-    id: string;                         // Answer items Id
-    confidence: number;                 // Accuracy rate 0-1
-    type: QuestionTypes;                // Question Type
-    answer: string;                     // Student Answer
+/**
+ * Represents a single answer item for a question.
+ * @property id - Unique identifier for the answer.
+ * @property type - Type of the question (e.g., multiple_choice, short_answer).
+ * @property problem - Problem statement or question text.
+ * @property answer - The answer provided by the student.
+ * @property score - Optional score assigned to the answer.
+ */
+export interface AnswerItems{
+    /** Unique identifier for the answer */
+    id: string;
+    /** Type of the question */
+    type: QuestionTypes;
+    /** Problem statement or question text */
+    problem: string;
+    /** The answer provided */
+    answer: string;
+    /** Score assigned to the answer */
+    score?: number;
 }
 
-export interface AnswerScanResultProps {
-    id: string;                         // Answer Id
-    student_id: string | null;          // Extracted From QR
-    scanned_at: Timestamp;              // Firebase timestamp
-    answers: AnswerItemsProps[];        // Scaned Answer list
-}  
+/**
+ * Represents the properties of an answer submission.
+ */
+export interface AnswerProps{
+    /** Unique identifier for the answer */
+    id: string;
+    /** ID of the question this answer belongs to */
+    question_id: string;
+    /** ID of the student who submitted the answer (optional) */
+    student_id?: string;
+    /** Name of the student who submitted the answer (optional) */
+    student_name?: string;
+    /** Timestamp when the answer was scanned */
+    scanned_at: Timestamp;
+    /** Timestamp when the answer was last updated */
+    updated_at: Timestamp;
+    /** Array of answer items */
+    answers: AnswerItems[];
+}

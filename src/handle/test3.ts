@@ -38,6 +38,7 @@ export async function scanStudentAnswers(filePaths: string[]): Promise<AnswerSca
    - คำตอบแสดงออกเป็นการระบาย bubble, ขีดเครื่องหมาย หรือทำเครื่องหมายในกล่อง
    - อาจเป็นตัวอักษรหรือตัวเลขสั้น ๆ แทนคำตอบ
    - มักอยู่ในรูปแบบตาราง ช่อง หรือแถวที่จัดเรียงเป็นระเบียบ
+   - ใส่เนื้อหาคำตอบที่ตรวจด้วย เช่น "A - Hello" หรือ "B - World"
 
 2. short_answer:
    - คำตอบเป็นคำเดียว วลีสั้น ๆ หรือประโยคสั้น
@@ -92,12 +93,12 @@ export async function scanStudentAnswers(filePaths: string[]): Promise<AnswerSca
 `;
 
             const response = await genAI.models.generateContent({
-                model: "gemini-2.5-pro",
+                model: "gemini-2.0-flash-lite",
                 contents: [
                     {
                         role: "user", parts: [
                             { text: prompt },
-                            { inlineData: { mimeType: "image/png", data: imageBuffer.toString("base64") } }
+                            { inlineData: { mimeType: "image/jpeg", data: imageBuffer.toString("base64") } }
                         ]
                     }
                 ],
