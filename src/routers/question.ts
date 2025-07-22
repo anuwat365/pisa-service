@@ -5,7 +5,7 @@ import { createDoc } from "../handle/firestore";
 import { genAI } from "../config/firebase";
 import fs from "fs";
 import { scanStudentAnswers } from "../handle/test3";
-import { scanStudentAnswer } from "../handle/test4";
+import { scanAnswers } from "../handle/scanAnswer";
 
 const router = Router();
 
@@ -45,19 +45,10 @@ router.get("", async (req, res): Promise<any> => {
 //     }
 // });
 
-router.get("/test-ocr", async (req, res) => {
-    try {
-        const response = await scanStudentAnswer("choice_1.png");
-
-        res.json({ response });
-    } catch (err) {
-        console.log(err)
-    }
-});
 
 router.get("/test-ai", async (_req, res) => {
     try {
-        const response = await scanStudentAnswers(["choice_1.png"]);
+        const response = await scanAnswers({ filePaths: ["image2.jpg", "choice_1.png"], ownerUserId: "user_123" });
 
         res.json({ response });
     } catch (err) {

@@ -1,9 +1,6 @@
 import { firestore } from "../config/firebase";
+import { CollectionTypes } from "../types/collection";
 
-export type CollectionTypes = "users"
-    | "login_session"
-    | "sign_up_session"
-    | "questions";
 
 /**
  * Creates a document in the specified Firestore collection.
