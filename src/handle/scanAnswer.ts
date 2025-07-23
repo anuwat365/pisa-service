@@ -2,7 +2,7 @@ import { Timestamp } from "firebase-admin/firestore";
 import { genAI } from "../config/firebase";
 import { generateRandomString } from "../utils/randomString";
 import * as fs from "fs";
-import { AnswerProps } from "../models/answer";
+import { ScannedAnswerProps } from "../models/scanned_answer";
 
 export interface ScanAnswerProps {
     /** Array of file paths to images to be scanned */
@@ -13,16 +13,24 @@ export interface ScanAnswerProps {
 export async function scanAnswers({
     filePaths,
     ownerUserId
-}: ScanAnswerProps): Promise<AnswerProps[]> {
+}: ScanAnswerProps): Promise<ScannedAnswerProps[]> {
     // Prepare prompt and images for a single AI request
     const prompt = `
 คุณคือ AI ผู้ช่วยตรวจข้อสอบจากภาพที่แนบมา (ไม่ใช้ OCR)  
 หน้าที่ของคุณคือวิเคราะห์เนื้อหาที่ปรากฏในภาพอย่างละเอียดและเป็นระบบ เพื่อจำแนกคำตอบแต่ละข้อให้อยู่ในประเภทที่ถูกต้องที่สุด พร้อมระบุค่า accuracy ที่สะท้อนความมั่นใจตามหลักฐานจากภาพ โดยห้ามเดาหรือสร้างข้อมูลที่ไม่มีอยู่จริงในภาพ
 
+**ข้อกำหนดสำคัญ:**
+- ห้ามสร้างหรือสมมติคำถาม/คำตอบที่ไม่มีในภาพจริง
+- ห้ามสร้างหลาย object สำหรับนักเรียนคนเดียวกัน หรือจากรูปภาพเดียวกันโดยเด็ดขาด
+- สำหรับแต่ละนักเรียน (student_id/student_name) ที่พบในภาพ ให้สร้าง object เดียวเท่านั้น
+- สำหรับแต่ละรูปภาพ ให้สร้าง object เดียวเท่านั้น (ถ้ามีหลายคำตอบ ให้รวมไว้ใน answers array เดียว)
+- ถ้าพบคำตอบหลายข้อในภาพเดียวกัน ให้รวมไว้ใน answers array ของ object เดียว ห้ามแยก object
+- ถ้าพบนักเรียนคนเดียวกันในหลายภาพ ให้รวมคำตอบทั้งหมดไว้ใน object เดียว (answers array เดียว) ห้ามแยก object
+
 **โปรดสแกนและระบุ student_id และ student_name ที่ปรากฏในภาพ (ถ้ามี):**
 - หากไม่พบ ให้เว้นว่างหรือใส่ null
-- หากพบ student_id หรือ student_name ของนักเรียนหลายคน ให้สร้าง object สำหรับแต่ละคน
-- หากไมม่พบข้อมูลนักเรียนในบางภาพหรือไฟล์ ให้สังเกตด้วยลายมือหรือทำนองการเขียน
+- หากพบ student_id หรือ student_name ของนักเรียนหลายคน ให้สร้าง object สำหรับแต่ละคน (แต่ละ object รวมคำตอบจากทุกภาพของนักเรียนคนนั้นไว้ใน answers array เดียว)
+- หากไม่พบข้อมูลนักเรียนในบางภาพหรือไฟล์ ให้สังเกตด้วยลายมือหรือทำนองการเขียน
 
 **โปรดระบุชื่อคำถาม (question_name) ตามชื่อนักเรียนและชื่อคำถามที่ปรากฏในภาพ:**
 - หากไม่พบ ให้เว้นว่าง
@@ -102,7 +110,13 @@ export async function scanAnswers({
 - ให้ใส่คำตอบทุกข้อที่สามารถระบุได้
 - ห้ามสร้างหรือสมมติคำถาม/คำตอบที่ไม่มีในภาพจริง
 - ห้ามใส่คำอธิบาย คำบรรยาย หรือข้อความอื่น ๆ นอกจาก JSON array นี้
-- หากพบข้อที่ไม่ชัดเจน ควรใส่ค่า confidence ต่ำเพื่อให้เจ้าหน้าที่ตรวจสอบต่อ
+- ห้ามสร้างหลาย object สำหรับนักเรียนคนเดียวกัน หรือจากรูปภาพเดียวกันโดยเด็ดขาด
+- ถ้ามีคำตอบหลายข้อในภาพเดียวกัน ให้รวมไว้ใน answers array ของ object หลักอันเดียว
+- ถ้าพบนักเรียนคนเดียวกันในหลายภาพ ให้รวมคำตอบทั้งหมดไว้
+- ถ้ามีคำตอบหลายข้อจากนักเรียนคนเดียวกัน ให้รวมคำตอบทั้งหมดไว้ใน object หลักอันเดียว
+- ห้ามสร้างหลาย object หลัก สำหรับนักเรียนคนเดียวกัน หรือจากรูปภาพเดียวกัน
+- ถ้ามีคำตอบหลายข้อจากนักเรียนคนเดียวกัน ให้รวมคำตอบทั้งหมด ไว้ใน object หลักอันเดียว
+- ให้รวมคำตอบทั้งหมดของนักเรียนคนเดียวกันหรือจากรูปภาพเดียวกันไว้ใน object เดียว ใน "answers" array เท่านั้น
 
 จงทำงานตามขั้นตอนและหลักเกณฑ์ข้างต้นอย่างเคร่งครัด
 `;
@@ -126,7 +140,7 @@ export async function scanAnswers({
 
     // Match JSON array containing student objects
     const jsonMatch = response.candidates?.[0]?.content?.parts?.[0]?.text?.match(/\[[\s\S]*\]/i);
-    let answerPropsArray: AnswerProps[] = [];
+    let answerPropsArray: ScannedAnswerProps[] = [];
     try {
         const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : "[]");
         if (Array.isArray(parsed) && parsed.length > 0) {

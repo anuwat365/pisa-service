@@ -1,5 +1,5 @@
 import { Timestamp } from "firebase-admin/firestore";
-import { genAI, visionClient } from "../config/firebase";
+import { genAI } from "../config/firebase";
 import { generateRandomString } from "../utils/randomString";
 import * as fs from "fs";
 

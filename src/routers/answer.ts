@@ -4,7 +4,7 @@ import { generateRandomString } from "../utils/randomString";
 import { createDoc, getDoc } from "../handle/firestore";
 import multer from "multer";
 import { scanAnswers } from "../handle/scanAnswer";
-import { AnswerProps } from "../models/answer";
+import { ScannedAnswerProps } from "../models/scanned_answer";
 import { LoginSessionProps } from "../models/login_session";
 import { firestore } from "firebase-admin";
 
@@ -34,12 +34,14 @@ router.post("/scan", upload.array("files"), async (req, res): Promise<any> => {
             ]
         });
 
+        const userId = login_session_doc?.user_id || "";
+
         const files = req.files as Express.Multer.File[];
-        const scanResult: AnswerProps[] = await scanAnswers({ filePaths: files.map(file => file.originalname), ownerUserId: login_session_doc.user_id||"" });
+        const scanResult: ScannedAnswerProps[] = await scanAnswers({ filePaths: files.map(file => file.originalname), ownerUserId: userId });
 
         // Create Firestore documents for each answer
         for (const answer of scanResult) {
-            await createDoc<AnswerProps>({
+            await createDoc<ScannedAnswerProps>({
                 name: "scanned_answers",
                 data: answer
             });

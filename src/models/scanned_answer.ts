@@ -35,7 +35,7 @@ export interface AnswerItems {
  * @property updated_at - Timestamp when the answer was last updated.
  * @property answers - Array of answer items.
  */
-export interface AnswerProps {
+export interface ScannedAnswerProps {
     /** Unique identifier for the answer */
     id: string;
     /** ID of the user who owns the document */
