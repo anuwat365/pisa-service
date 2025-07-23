@@ -5,12 +5,15 @@ import * as fs from "fs";
 import { ScannedAnswerProps } from "../models/scanned_answer";
 
 export interface ScanAnswerProps {
+    /** Unique identifier for the answer */
+    id: string;
     /** Array of file paths to images to be scanned */
     filePaths: string[];
     /** ID of the user who owns the document */
     ownerUserId: string;
 }
 export async function scanAnswers({
+    id,
     filePaths,
     ownerUserId
 }: ScanAnswerProps): Promise<ScannedAnswerProps[]> {
@@ -145,7 +148,7 @@ export async function scanAnswers({
         const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : "[]");
         if (Array.isArray(parsed) && parsed.length > 0) {
             answerPropsArray = parsed.map((genAIs: any) => ({
-                id: generateRandomString(64),
+                id: id,
                 question_id: "",
                 question_name: genAIs.question_name || "",
                 owner_user_id: ownerUserId,
