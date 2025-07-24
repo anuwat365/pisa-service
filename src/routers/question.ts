@@ -48,7 +48,7 @@ router.get("", async (req, res): Promise<any> => {
 
 router.get("/test-ai", async (_req, res) => {
     try {
-        const response = await scanAnswers({id: "some_id", filePaths: ["image2.jpg", "choice_1.png"], ownerUserId: "user_123" });
+        const response = await scanAnswers({ filePaths: ["image2.jpg", "choice_1.png"], ownerUserId: "user_123" });
 
         res.json({ response });
     } catch (err) {

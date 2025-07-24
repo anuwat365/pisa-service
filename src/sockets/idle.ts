@@ -6,11 +6,12 @@ import { LoginSessionProps } from "../models/login_session";
 import { UsersProps } from "../models/users";
 import { ScannedAnswerProps } from "../models/scanned_answer";
 import events from "../config/eventEmitter";
+import { generateRandomString } from "../utils/randomString";
 
 // Map to keep track of connected users {connectId, userId}
 const connectingUsers = new Map<string, string>();
 
-// Map to keep track of processing answers {userId, scannedAnswerIds}
+// Map to keep track of processing answers {userId, scanning ids}
 const processingAnswersMap = new Map<string, string[]>();
 // Main idle socket handler
 const idle = ({
@@ -117,41 +118,50 @@ const idle = ({
         });
     };
 
-    const processScan = ({ message }: { message: string }) => {
-        console.log("Message", message);
-    }
+    const disconnect = ({ connectId }: { connectId: string }) => {
+        // Emit disconnect event
+        io.to(connectId).emit("idle:disconnect", {
+            success: true,
+            message: "Disconnected successfully"
+        });
+        // Remove user from connectingUsers map
+        connectingUsers.delete(connectId);
+        // Leave the room
+        socket.leave(connectId);
 
+    };
+
+    // Handles "idle:start-scanning" event
     const startScanning = ({ userId, scannedAnswerId }: { userId: string, scannedAnswerId: string }) => {
-        console.log("Start scanning for user:", userId, "with scannedAnswerId:", scannedAnswerId);
-        // console.log("Start scanning for user:", userId, "with scannedAnswerId:", scannedAnswerId);
-        // Check if user is already processing answers
-        if (processingAnswersMap.has(userId)) {
-            const existingIds = processingAnswersMap.get(userId) || [];
-            if (!existingIds.includes(scannedAnswerId)) {
-                existingIds.push(scannedAnswerId);
-                processingAnswersMap.set(userId, existingIds);
-            }
-        } else {
-            processingAnswersMap.set(userId, [scannedAnswerId]);
-        }
+        // Add scannedAnswerId to the user's processing list
+        const scans = processingAnswersMap.get(userId) ?? [];
+        scans.push(scannedAnswerId);
+        processingAnswersMap.set(userId, scans);
 
-        // Find connectId by userId since connectingUsers is Map<connectId, userId>
+        // Find the connectId for this user
         const connectId = [...connectingUsers.entries()].find(([, uid]) => uid === userId)?.[0];
-        // console.log("Connect ID for user:", connectId);
-        // console.log("Processing answers for user:", userId, "Answers:", processingAnswers);
         if (connectId) {
+            // Notify client that scanning has started
             io.to(connectId).emit("idle:start-scanning", {
                 success: true,
-                scanningAnswer: scannedAnswerId,
+                scanId: scannedAnswerId,
             });
         }
-    }
+    };
 
-    const completeScan = ({ userId, scannedAnswers }: { userId: string, scannedAnswers: ScannedAnswerProps[] }) => {
-        // console.log("Scan complete for user:", userId, "Answers:", scannedAnswers);
-        // Remove user from processing map
-        processingAnswersMap.delete(userId);
+    // Handles "idle:scan-complete" event
+    const completeScan = ({ userId, scannedAnswers, scannedAnswerId }: { userId: string; scannedAnswers: ScannedAnswerProps[]; scannedAnswerId: string; }) => {
+        // Remove scannedAnswerId from user's processing list
+        const currentScans = (processingAnswersMap.get(userId) || []).filter(id => id !== scannedAnswerId);
 
+        // Update or delete the processing list for the user
+        if (currentScans.length === 0) {
+            processingAnswersMap.delete(userId);
+        } else {
+            processingAnswersMap.set(userId, currentScans);
+        }
+
+        // Prepare scanned answers for client
         const modifiedScannedAnswers = scannedAnswers.map(answer => ({
             id: answer.id,
             owner_user_id: answer.owner_user_id,
@@ -163,22 +173,21 @@ const idle = ({
             answers: answer.answers,
         }));
 
-        // Find connectId by userId
+        // Find connectId for user and emit scan complete event
         const connectId = [...connectingUsers.entries()].find(([, uid]) => uid === userId)?.[0];
         if (connectId) {
             io.to(connectId).emit("idle:scan-complete", {
                 success: true,
                 scannedAnswers: modifiedScannedAnswers,
+                scanId: scannedAnswerId,
             });
         }
-    }
+    };
 
-    events.on("idle:process-scan", processScan);
     events.on("idle:start-scanning", startScanning);
     events.on("idle:scan-complete", completeScan);
-    // Register event handler
     socket.on("idle:connect", connect);
-    // socket.on("idle:process-scan", processScan);
+    socket.on("idle:disconnect", disconnect);
 };
 
 export default idle;

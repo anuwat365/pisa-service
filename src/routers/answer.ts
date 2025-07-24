@@ -20,16 +20,14 @@ dotenv.config();
 const router = Router();
 
 // Route to handle scanning of answer files
-router.post("/scan", upload.array("files"), async (req, res): Promise<any> => {
-    // Get session token from cookies
+router.post("/scan", upload.array("files"), async (req, res) => {
+    // Get session token from cookies and user agent from request body
     const sessionToken = req.cookies.session_token;
-
-    // Extract user agent from request body
     const { userAgent } = req.body;
 
     try {
-        // Find login session by token, user agent, and other conditions
-        const [login_session_doc] = await getDoc<LoginSessionProps>({
+        // Retrieve the login session from Firestore with multiple conditions
+        const [loginSession] = await getDoc<LoginSessionProps>({
             name: "login_session",
             condition: [
                 { field: "session_token", operator: "==", value: sessionToken || "" },
@@ -39,54 +37,34 @@ router.post("/scan", upload.array("files"), async (req, res): Promise<any> => {
             ]
         });
 
-        // Get user ID from login session
-        const userId = login_session_doc?.user_id || "";
-
+        // Extract user ID from the login session, or use empty string if not found
+        const userId = loginSession?.user_id || "";
         // Generate a random ID for the scanned answer batch
         const scannedAnswerId = generateRandomString(128);
+        // Emit event to signal scanning has started
+        events.emit("idle:start-scanning", { userId, scannedAnswerId });
 
-        // Emit event to signal start of scanning
-        events.emit("idle:start-scanning", { userId, scannedAnswerId: scannedAnswerId });
-
-        // Get uploaded files from request
+        // Get uploaded files from the request
         const files = req.files as Express.Multer.File[];
-
-        // Scan the uploaded answer files
-        // const scanResult: ScannedAnswerProps[] = await scanAnswers({
-        //     id: scannedAnswerId,
-        //     filePaths: files.map(file => file.originalname),
-        //     ownerUserId: userId
-        // });
-
-        // Create Firestore documents for each scanned answer
-
-        await scanAnswers({
-            id: scannedAnswerId,
+        // Scan the answers using the provided files and user ID
+        const scannedAnswers = await scanAnswers({
             filePaths: files.map(file => file.originalname),
             ownerUserId: userId
-        }).then(async (items) => {
-            for (const answer of items) {
-                await createDoc<ScannedAnswerProps>({
-                    name: "scanned_answers",
-                    data: answer
-                });
-            }
-            events.emit("idle:scan-complete", { userId, scannedAnswers: items });
-            return;
         });
 
-        // // Respond with scan results
-        // return res.status(200).json({
-        //     success: true,
-        //     data: scanResult
-        // });
-    } catch (err) {
-        // Log and respond with error
-        console.error(err);
-        return res.status(500).json({
-            success: false,
-            message: "Internal Server Error"
-        });
+        // Store each scanned answer in Firestore
+        await Promise.all(scannedAnswers.map(answer =>
+            createDoc<ScannedAnswerProps>({ name: "scanned_answers", data: answer })
+        ));
+
+        // Emit event to signal scanning is complete
+        events.emit("idle:scan-complete", { userId, scannedAnswers, scannedAnswerId });
+        // Respond with success
+        return res.json({ success: true });
+    } catch (error) {
+        // Log and respond with error if something goes wrong
+        console.error("Error at scanning answers:", error);
+        return res.status(500).json({ success: false, message: "Internal Server Error" });
     }
 });
 

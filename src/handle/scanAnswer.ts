@@ -5,15 +5,12 @@ import * as fs from "fs";
 import { ScannedAnswerProps } from "../models/scanned_answer";
 
 export interface ScanAnswerProps {
-    /** Unique identifier for the answer */
-    id: string;
     /** Array of file paths to images to be scanned */
     filePaths: string[];
     /** ID of the user who owns the document */
     ownerUserId: string;
 }
 export async function scanAnswers({
-    id,
     filePaths,
     ownerUserId
 }: ScanAnswerProps): Promise<ScannedAnswerProps[]> {
@@ -36,8 +33,10 @@ export async function scanAnswers({
 - หากไม่พบข้อมูลนักเรียนในบางภาพหรือไฟล์ ให้สังเกตด้วยลายมือหรือทำนองการเขียน
 
 **โปรดระบุชื่อคำถาม (question_name) ตามชื่อนักเรียนและชื่อคำถามที่ปรากฏในภาพ:**
-- หากไม่พบ ให้เว้นว่าง
 - หากพบคำถามหลายข้อในภาพ ให้ระบุชื่อคำถามที่เกี่ยวข้องกับคำตอบที่ตรวจสอบ
+- ต้องระบุชื่อคำถามทุกครั้ง
+- หากไม่พบชื่อคำถาม ให้คิดชื่อที่เหมาะสมตามเนื้อหาภาพ เช่น "เรื่องคณิตศาสตร์", "คำถามภาษาไทย", "วิทยาศาสตร์" เป็นต้น
+
 
 **โปรดพิจารณาคุณภาพของการสแกนภาพอย่างละเอียด:**  
 - หากภาพเบลอ มืด สว่างเกินไป มีรอยพับ รอยขีดข่วน หรือมีส่วนที่ขาดหาย ให้ระบุ accuracy ต่ำ  
@@ -113,7 +112,7 @@ export async function scanAnswers({
 - ให้ใส่คำตอบทุกข้อที่สามารถระบุได้
 - ห้ามสร้างหรือสมมติคำถาม/คำตอบที่ไม่มีในภาพจริง
 - ห้ามใส่คำอธิบาย คำบรรยาย หรือข้อความอื่น ๆ นอกจาก JSON array นี้
-- ห้ามสร้างหลาย object สำหรับนักเรียนคนเดียวกัน หรือจากรูปภาพเดียวกันโดยเด็ดขาด
+- ห้ามสร้าง object หลักสำหรับนักเรียนคนเดียวกัน หรือจากรูปภาพเดียวกันโดยเด็ดขาด
 - ถ้ามีคำตอบหลายข้อในภาพเดียวกัน ให้รวมไว้ใน answers array ของ object หลักอันเดียว
 - ถ้าพบนักเรียนคนเดียวกันในหลายภาพ ให้รวมคำตอบทั้งหมดไว้
 - ถ้ามีคำตอบหลายข้อจากนักเรียนคนเดียวกัน ให้รวมคำตอบทั้งหมดไว้ใน object หลักอันเดียว
@@ -148,7 +147,7 @@ export async function scanAnswers({
         const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : "[]");
         if (Array.isArray(parsed) && parsed.length > 0) {
             answerPropsArray = parsed.map((genAIs: any) => ({
-                id: id,
+                id: generateRandomString(64),
                 question_id: "",
                 question_name: genAIs.question_name || "",
                 owner_user_id: ownerUserId,
@@ -157,6 +156,7 @@ export async function scanAnswers({
                 scanned_at: Timestamp.now(),
                 updated_at: Timestamp.now(),
                 answers: Array.isArray(genAIs.answers) ? genAIs.answers.map((item: any) => ({
+                    id: generateRandomString(64),
                     type: item.type,
                     problem: item.problem,
                     answer: item.answer,
