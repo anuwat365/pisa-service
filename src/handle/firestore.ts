@@ -142,3 +142,23 @@ export const updateDoc = async <T>({
     await batch.commit();
     console.log(`[updateDoc] Updated ${snapshot.size} documents in ${name}`);
 };
+
+/**
+ * Deletes a document from a Firestore collection by ID.
+ * @param name - The collection name.
+ * @param id - The document ID to delete.
+ */
+export const deleteDoc = async <T>({
+    name,
+    id
+}: {
+    name: CollectionTypes;
+    id: string;
+}): Promise<void> => {
+    try {
+        await firestore.collection(name).doc(id).delete();
+        console.log(`[deleteDoc] Deleted document ${id} from ${name}`);
+    } catch (error) {
+        console.error(`Error deleting document ${id} from ${name}:`, error);
+    }
+};

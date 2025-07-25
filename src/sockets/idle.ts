@@ -110,11 +110,18 @@ const idle = ({
         // Store connection info
         connectingUsers.set(connectId, loginSession.user_id);
 
+        // Get processing scans for this user
+        const processingScans = processingAnswersMap.get(loginSession.user_id) || [];
+
+        // Remove duplicate processing scans
+        const uniqueProcessingScans = Array.from(new Set(processingScans));
+
         // Send success response with user and scanned answers
         io.to(connectId).emit("idle:connect", {
             success: true,
             user: modifiedUser,
-            scannedAnswers: modifiedScannedAnswers
+            scannedAnswers: modifiedScannedAnswers,
+            processingScans: uniqueProcessingScans,
         });
     };
 

@@ -1,13 +1,14 @@
 import { Router } from "express";
 import dotenv from "dotenv";
 import { generateRandomString } from "../utils/randomString";
-import { createDoc, getDoc } from "../handle/firestore";
+import { createDoc, deleteDoc, getDoc } from "../handle/firestore";
 import multer from "multer";
 import { scanAnswers } from "../handle/scanAnswer";
 import { ScannedAnswerProps } from "../models/scanned_answer";
 import { LoginSessionProps } from "../models/login_session";
 import { firestore } from "firebase-admin";
 import events from "../config/eventEmitter";
+import { authMiddleware } from "../middlewares/auth";
 
 
 const upload = multer({
@@ -68,4 +69,23 @@ router.post("/scan", upload.array("files"), async (req, res) => {
     }
 });
 
+// Route to handle delete scanned answers
+router.post("/delete", authMiddleware, async (req, res) => {
+    const { scannedAnswerId } = req.body;
+
+    try {
+        // Remove the scanned answer from Firestore
+        await deleteDoc<ScannedAnswerProps>({
+            name: "scanned_answers",
+            id: scannedAnswerId
+        });
+
+        // Respond with success
+        return res.json({ success: true });
+    } catch (error) {
+        // Log and respond with error if something goes wrong
+        console.error("Error at removing scanned answers:", error);
+        return res.status(500).json({ success: false, message: "Internal Server Error" });
+    }
+});
 export default router;
