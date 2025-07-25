@@ -12,7 +12,7 @@
     ```bash
     npm install
     ```
-3. **Setup Index in Firebase firestore
+3. **Setup Index in Firebase firestore**
     - Refer to the following image for guidance on setting up the index in Firebase Firestore:
 
     ![Firebase Firestore Index Setup](./images/firebase_index.png)
