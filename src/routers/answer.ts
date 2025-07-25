@@ -9,6 +9,7 @@ import { LoginSessionProps } from "../models/login_session";
 import { firestore } from "firebase-admin";
 import events from "../config/eventEmitter";
 import { authMiddleware } from "../middlewares/auth";
+import { uploadImage } from "../handle/storage";
 
 
 const upload = multer({
@@ -41,16 +42,17 @@ router.post("/scan", upload.array("files"), async (req, res) => {
         // Extract user ID from the login session, or use empty string if not found
         const userId = loginSession?.user_id || "";
         // Generate a random ID for the scanned answer batch
-        const scannedAnswerId = generateRandomString(128);
+        const jobId = generateRandomString(128);
         // Emit event to signal scanning has started
-        events.emit("idle:start-scanning", { userId, scannedAnswerId });
+        events.emit("idle:start-scanning", { userId, scannedAnswerId:jobId });
 
         // Get uploaded files from the request
         const files = req.files as Express.Multer.File[];
         // Scan the answers using the provided files and user ID
         const scannedAnswers = await scanAnswers({
-            filePaths: files.map(file => file.originalname),
-            ownerUserId: userId
+            files: files.map(file => file.buffer),
+            ownerUserId: userId,
+            jobId: jobId
         });
 
         // Store each scanned answer in Firestore
@@ -59,7 +61,16 @@ router.post("/scan", upload.array("files"), async (req, res) => {
         ));
 
         // Emit event to signal scanning is complete
-        events.emit("idle:scan-complete", { userId, scannedAnswers, scannedAnswerId });
+        events.emit("idle:scan-complete", { userId, scannedAnswers, scannedAnswerId:jobId });
+
+        //Upload images to Firebase Storage
+        await uploadImage({
+            image: Buffer.concat(files.map(file => file.buffer)),
+            name: `${jobId}`,
+            folder: `scanned_answers`,
+            imageType: "png"
+        });
+
         // Respond with success
         return res.json({ success: true });
     } catch (error) {

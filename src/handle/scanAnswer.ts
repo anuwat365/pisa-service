@@ -5,14 +5,17 @@ import * as fs from "fs";
 import { ScannedAnswerProps } from "../models/scanned_answer";
 
 export interface ScanAnswerProps {
-    /** Array of file paths to images to be scanned */
-    filePaths: string[];
+    /** Array of file paths to scan */
+    files: Buffer[];
     /** ID of the user who owns the document */
     ownerUserId: string;
+    /** Optional job ID for tracking */
+    jobId: string;
 }
 export async function scanAnswers({
-    filePaths,
-    ownerUserId
+    files,
+    ownerUserId,
+    jobId
 }: ScanAnswerProps): Promise<ScannedAnswerProps[]> {
     // Prepare prompt and images for a single AI request
     const prompt = `
@@ -129,10 +132,10 @@ export async function scanAnswers({
             {
                 role: "user", parts: [
                     { text: prompt },
-                    ...filePaths.map(fp => ({
+                    ...files.map((fp: Buffer) => ({
                         inlineData: {
                             mimeType: "image/jpeg",
-                            data: fs.readFileSync(fp).toString("base64")
+                            data: fp.toString("base64")
                         }
                     }))
                 ]
@@ -148,6 +151,7 @@ export async function scanAnswers({
         if (Array.isArray(parsed) && parsed.length > 0) {
             answerPropsArray = parsed.map((genAIs: any) => ({
                 id: generateRandomString(64),
+                job_id: jobId || generateRandomString(64),
                 question_id: "",
                 question_name: genAIs.question_name || "",
                 owner_user_id: ownerUserId,

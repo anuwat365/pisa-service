@@ -38,6 +38,8 @@ export interface AnswerItems {
 export interface ScannedAnswerProps {
     /** Unique identifier for the answer */
     id: string;
+    /** Job ID associated with the scanned answer */
+    job_id: string;
     /** ID of the user who owns the document */
     owner_user_id:string;
     /** Name of the question this answer belongs to */
