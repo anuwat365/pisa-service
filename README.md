@@ -12,11 +12,15 @@
     ```bash
     npm install
     ```
+3. **Setup Index in Firebase firestore
+    - Refer to the following image for guidance on setting up the index in Firebase Firestore:
 
-3. **Configure environment variables**
+    ![Firebase Firestore Index Setup](./images/firebase_index.png)
+
+4. **Configure environment variables**
     - Copy `.env.example` to `.env` and update values as needed.
 
-4. **Run the service locally**
+5. **Run the service locally**
     ```bash
     npm run dev
     ```
@@ -25,4 +29,3 @@
 
 - Ensure all required environment variables are set.
 - For troubleshooting, check logs and documentation.
-- Refer to [docs/](docs/) for advanced configuration and deployment options.
