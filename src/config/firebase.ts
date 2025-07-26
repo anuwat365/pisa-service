@@ -20,8 +20,8 @@ const serviceAccount = {
 
 admin.initializeApp({
     credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
-    databaseURL: "pisa-86624.firebaseapp.com",
-    storageBucket: "pisa-86624.firebasestorage.app"
+    databaseURL: "pisa-new.firebaseapp.com",
+    storageBucket: "pisa-new.firebasestorage.app"
 });
 
 export const firestore = admin.firestore();
