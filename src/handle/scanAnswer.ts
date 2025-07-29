@@ -152,7 +152,6 @@ export async function scanAnswers({
             answerPropsArray = parsed.map((genAIs: any) => ({
                 id: generateRandomString(64),
                 job_id: jobId || generateRandomString(64),
-                question_id: "",
                 question_name: genAIs.question_name || "",
                 owner_user_id: ownerUserId,
                 student_id: genAIs.student_id ?? null,
